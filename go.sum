@@ -1,0 +1,6 @@
+github.com/anathema-framework/assert v0.1.0 h1:NA7KqBG0eROsSvtnuXZMefWtmUGF6GaKpXwEZ/z1DIw=
+github.com/anathema-framework/assert v0.1.0/go.mod h1:/EBh1DWtxj8jF7mrpuR2soKLod+mSK+FREf2ofMLy5A=
+github.com/hashicorp/errwrap v1.0.0 h1:hLrqtEDnRye3+sgx6z4qVLNuviH3MR5aQ0ykNJa/UYA=
+github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
+github.com/hashicorp/go-multierror v1.1.0 h1:B9UzwGQJehnUY1yNrnwREHc3fGbC2xefo8g4TbElacI=
+github.com/hashicorp/go-multierror v1.1.0/go.mod h1:spPvp8C1qA32ftKqdAHm4hHTbPw+vmowP0z+KUhOZdA=
