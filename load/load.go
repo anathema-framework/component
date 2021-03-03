@@ -31,13 +31,28 @@ func AddServiceFactory(c *di.Configuration, service reflect.Type) {
 			return reflect.Value{}, ErrNoScope
 		}
 
-		value := s.Ensure(service, func() reflect.Value { return reflect.New(service) })
-		err := di.FurnishValue(ctx, value.Elem())
-		return value, err
+		value, ok := s.Get(reflect.PtrTo(service))
+		if !ok {
+			value = reflect.New(service)
+			s.Insert(reflect.PtrTo(service), value)
+
+			err := di.FurnishValue(ctx, value.Elem())
+			if err != nil {
+				return reflect.Value{}, err
+			}
+		}
+
+		return value, nil
 	})
 }
 
 func AddProviderFactories(c *di.Configuration, provider reflect.Type) error {
+	p := provider
+	if p.Kind() == reflect.Ptr {
+		p = p.Elem()
+	}
+	AddServiceFactory(c, p)
+
 	for i := 0; i < provider.NumMethod(); i++ {
 		m := provider.Method(i)
 		if m.PkgPath != "" {
@@ -66,10 +81,13 @@ func addProviderFactory(c *di.Configuration, m reflect.Method) error {
 		if err != nil {
 			return reflect.Value{}, err
 		}
+
 		out := m.Func.Call(in)
+
 		if len(out) == 1 || out[1].IsNil() {
 			return out[0], nil
 		}
+
 		return reflect.Value{}, out[1].Interface().(error)
 	})
 

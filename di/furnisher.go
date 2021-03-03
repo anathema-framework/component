@@ -31,6 +31,7 @@ var contextType = reflect.TypeOf(new(context.Context)).Elem()
 func (f *furnisher) furnish(ctx context.Context, target reflect.Value) error {
 	if target.Type() == contextType {
 		target.Set(reflect.ValueOf(ctx))
+		return nil
 	}
 
 	found := f.findFactories(target.Type())
@@ -98,6 +99,9 @@ func (f *furnisher) furnishStruct(ctx context.Context, target reflect.Value) err
 	for i := t.NumField() - 1; i >= 0; i-- {
 		fp := t.Field(i)
 		if fp.PkgPath != "" {
+			continue
+		}
+		if fp.Tag != "" {
 			continue
 		}
 		if fp.Type.AssignableTo(component.Type()) {

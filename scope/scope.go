@@ -15,7 +15,7 @@ type Scope struct {
 	lock   sync.RWMutex
 }
 
-type scopeKey struct {}
+type scopeKey struct{}
 
 func Enter(ctx context.Context, name string) context.Context {
 	var prev *Scope
