@@ -3,6 +3,7 @@ package load
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/anathema-framework/component"
 	"github.com/anathema-framework/component/a"
 	"github.com/anathema-framework/component/di"
@@ -26,9 +27,10 @@ func Services(c *di.Configuration) error {
 
 func AddServiceFactory(c *di.Configuration, service reflect.Type) {
 	c.AddFactory(reflect.PtrTo(service), func(ctx context.Context) (reflect.Value, error) {
-		s := scope.Retrieve(ctx, component.TypeTag(service).Get("scope"))
+		scopeName := component.TypeTag(service).Get("scope")
+		s := scope.Retrieve(ctx, scopeName)
 		if s == nil {
-			return reflect.Value{}, ErrNoScope
+			return reflect.Value{}, fmt.Errorf("%s: %w", scopeName, ErrNoScope)
 		}
 
 		value, ok := s.Get(reflect.PtrTo(service))
@@ -67,29 +69,6 @@ func AddProviderFactories(c *di.Configuration, provider reflect.Type) error {
 			return err
 		}
 	}
-
-	return nil
-}
-
-func addProviderFactory(c *di.Configuration, m reflect.Method) error {
-	if m.Type.NumOut() == 0 || m.Type.NumOut() > 2 {
-		return ErrBadProvider
-	}
-
-	c.AddFactory(m.Type.Out(0), func(ctx context.Context) (reflect.Value, error) {
-		in, err := di.FurnishArgs(ctx, m.Func)
-		if err != nil {
-			return reflect.Value{}, err
-		}
-
-		out := m.Func.Call(in)
-
-		if len(out) == 1 || out[1].IsNil() {
-			return out[0], nil
-		}
-
-		return reflect.Value{}, out[1].Interface().(error)
-	})
 
 	return nil
 }
@@ -139,3 +118,49 @@ func (l *loader) providers() {
 func (l *loader) addServiceFactory(service reflect.Type) {
 	AddServiceFactory(l.c, service)
 }
+
+var errType = reflect.TypeOf(new(error)).Elem()
+
+func addProviderFactory(c *di.Configuration, m reflect.Method) error {
+	err := checkProvider(m.Type)
+	if err != nil {
+		return fmt.Errorf("%s: %w", m.Name, err)
+	}
+
+	c.AddFactory(m.Type.Out(0), func(ctx context.Context) (reflect.Value, error) {
+		in, err := di.FurnishArgs(ctx, m.Func)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+
+		out := m.Func.Call(in)
+
+		if len(out) == 1 || out[1].IsNil() {
+			return out[0], nil
+		}
+
+		return reflect.Value{}, out[1].Interface().(error)
+	})
+
+	return nil
+}
+
+func checkProvider(mt reflect.Type) error {
+	switch mt.NumOut() {
+	case 1:
+		if mt.Out(0).AssignableTo(errType) {
+			return ErrBadProvider
+		}
+	case 2:
+		if mt.Out(0).AssignableTo(errType) {
+			return ErrBadProvider
+		}
+		if !mt.Out(1).AssignableTo(errType) {
+			return ErrBadProvider
+		}
+	default:
+		return ErrBadProvider
+	}
+	return nil
+}
+
